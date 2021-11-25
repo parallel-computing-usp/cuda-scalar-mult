@@ -7,7 +7,7 @@
 
 __global__ void prod_linha(int *d_A, int *d_B, int *d_somape, int dim)
 {
-   
+    printf("somape brefore: %d\n", *d_somape);
     int lin = blockIdx.y * blockDim.y + threadIdx.y;
     int col = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -15,8 +15,6 @@ __global__ void prod_linha(int *d_A, int *d_B, int *d_somape, int dim)
     
     printf("Thread[%d] [%d] multiplica %d * %d\n", lin, col, d_A[lin*dim+col], d_B[lin*dim+col]);
     
-    *d_somape = 0;
-    //*d_somape+= d_A[lin*dim+col]*d_B[lin*dim+col];
     atomicAdd(d_somape, d_A[lin*dim+col]*d_B[lin*dim+col]);
     printf("somape: %d\n", *d_somape);
 }
@@ -31,9 +29,8 @@ int main(int argc,char **argv)
     int *d_A,*d_B, *d_somape;
     // //Declara as variáveis de índice
     int i,j,dim;
-    // int h_somape, d_somape;
     //Declara o acumulador para o produto escalar global
-    // int somape, minimo, maximo;
+    // int minimo, maximo;
 
 
     //Declaração da variável do tipo cudaStream_t
@@ -73,6 +70,8 @@ int main(int argc,char **argv)
     cudaMemcpyAsync(d_A,h_A,dim*dim*(sizeof(int)),cudaMemcpyHostToDevice,stream1);
     // Copia de maneira assíncrona a matriz B para o device, dentro da stream 1 
     cudaMemcpyAsync(d_B,h_B,dim*dim*(sizeof(int)),cudaMemcpyHostToDevice,stream1);
+    // Copia de maneira assíncrona somape=0 para o device, dentro da stream 1 
+    cudaMemcpyAsync(d_somape,&h_somape,sizeof(int),cudaMemcpyHostToDevice,stream1);
    
     
     cudaStreamSynchronize(stream1);
