@@ -5,7 +5,7 @@
 
 #define BLOCK_SIZE 16
 
-__global__ void prod_linha(int *d_A, int *d_B, int *d_prod, int *d_somape, int dim)
+__global__ void prod_linha(int *d_A, int *d_B, int *d_somape, int dim)
 {
    
     int lin = blockIdx.y * blockDim.y + threadIdx.y;
@@ -16,9 +16,6 @@ __global__ void prod_linha(int *d_A, int *d_B, int *d_prod, int *d_somape, int d
     
     printf("Thread[%d] [%d] multiplica %d * %d\n", lin, col, d_A[lin*dim+col], d_B[lin*dim+col]);
     
-    d_somape = 0;
-    // atomicAdd(d_prod[col], d_A[lin*dim+col]*d_B[lin*dim+col]);
-    d_prod[lin*dim+col] = d_A[lin*dim+col]*d_B[lin*dim+col];
     d_somape+= d_A[lin*dim+col]*d_B[lin*dim+col];
     //atomicAdd(d_somape, d_A[lin*dim+col]*d_B[lin*dim+col]);
     printf("somape: %d\n", d_somape);
@@ -29,9 +26,9 @@ __global__ void prod_linha(int *d_A, int *d_B, int *d_prod, int *d_somape, int d
 int main(int argc,char **argv)
 {
     // //Declara as matrizes do host
-    int *h_A,*h_B,*h_prod, h_somape=0;
+    int *h_A,*h_B, h_somape=0;
     // //Declara as matrizes do device
-    int *d_A,*d_B, *d_prod, *d_somape;
+    int *d_A,*d_B, *d_somape;
     // //Declara as variáveis de índice
     int i,j,dim;
     // int h_somape, d_somape;
@@ -52,14 +49,12 @@ int main(int argc,char **argv)
     //Aloca as matrizes em memória pinada no host
     cudaHostAlloc((void**)&h_A, dim*dim*(sizeof(int)), cudaHostAllocDefault); 
     cudaHostAlloc((void**)&h_B, dim*dim*(sizeof(int)), cudaHostAllocDefault);
-    // cudaHostAlloc((void**)&h_somape, sizeof(int), cudaHostAllocDefault);
-    cudaHostAlloc((void**)&h_prod, dim*dim*(sizeof(int)), cudaHostAllocDefault);
+    cudaHostAlloc((void**)&h_somape, sizeof(int), cudaHostAllocDefault);
 
     //Aloca as matrizes no device
     cudaMalloc((void**)&d_A, dim*dim*(sizeof(int))); 
     cudaMalloc((void**)&d_B, dim*dim*(sizeof(int))); 
     cudaMalloc((void**)&d_somape, sizeof(int));
-    cudaMalloc((void**)&d_prod, dim*dim*(sizeof(int))); 
 
     //Lê a matriz A do host
     for(i=0;i<dim;i++){
@@ -79,7 +74,7 @@ int main(int argc,char **argv)
     cudaMemcpyAsync(d_A,h_A,dim*dim*(sizeof(int)),cudaMemcpyHostToDevice,stream1);
     // Copia de maneira assíncrona a matriz B para o device, dentro da stream 1 
     cudaMemcpyAsync(d_B,h_B,dim*dim*(sizeof(int)),cudaMemcpyHostToDevice,stream1);
-    cudaMemcpyAsync(d_somape,&h_somape,sizeof(int), cudaMemcpyHostToDevice); 
+    cudaMemcpyAsync(d_somape,&h_somape,sizeof(int), cudaMemcpyHostToDevice, stream1); 
     
     cudaStreamSynchronize(stream1);
     
@@ -90,11 +85,9 @@ int main(int argc,char **argv)
     dim3 dimBlock(BLOCK_SIZE, BLOCK_SIZE);
 
 
-    prod_linha <<<dimGrid,dimBlock, 0, stream1>>> (d_A,d_B,d_prod,d_somape, dim);
-    
-
-    cudaMemcpyAsync(h_prod, d_prod, dim*dim*(sizeof(int)), cudaMemcpyDeviceToHost, stream1);
+    prod_linha <<<dimGrid,dimBlock, 0, stream1>>> (d_A,d_B,d_somape, dim);
     cudaStreamSynchronize(stream1);
+    
     cudaMemcpyAsync(&h_somape, d_somape, sizeof(int), cudaMemcpyDeviceToHost, stream1);
     cudaStreamSynchronize(stream1);
     
@@ -169,10 +162,8 @@ int main(int argc,char **argv)
     //Libera as matrizes
     cudaFreeHost(h_A);
     cudaFreeHost(h_B);
-    cudaFreeHost(h_prod);
     cudaFree(d_A);
     cudaFree(d_B);
-    cudaFree(d_prod);
 
     // //Libera o vetor
     // free(prod_escalar);
