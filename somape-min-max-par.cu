@@ -34,6 +34,8 @@ __global__ void minimo_maximo(int *d_Matrix, int *d_minimo, int *d_maximo, int d
 
 int main(int argc,char **argv)
 {
+    cudaDeviceReset(); // Reseta a GPU, para evitar pegar lixo de outras execuções
+    
     // //Declara as matrizes do host
     int *h_A,*h_B;
     // //Declara as matrizes do device
@@ -133,10 +135,6 @@ int main(int argc,char **argv)
     cudaStreamSynchronize(stream1);
     printf("Produto escalar: %d\n",h_somape); 
 
-    
-
-    
- 
 
     //Libera as matrizes
     cudaFreeHost(h_A);
@@ -150,7 +148,4 @@ int main(int argc,char **argv)
     cudaFree(d_minimo);
     cudaFree(d_maximo);
 
-    
-    // //Libera o vetor
-    // free(prod_escalar);
 }
