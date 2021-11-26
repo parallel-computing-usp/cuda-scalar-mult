@@ -141,8 +141,15 @@ int main(int argc,char **argv)
     //Libera as matrizes
     cudaFreeHost(h_A);
     cudaFreeHost(h_B);
+    cudaFreeHost(&h_somape);
+    cudaFreeHost(&h_minimo);
+    cudaFreeHost(&h_maximo);
     cudaFree(d_A);
     cudaFree(d_B);
+    cudaFree(d_somape);
+    cudaFree(d_minimo);
+    cudaFree(d_maximo);
+
     
     // //Libera o vetor
     // free(prod_escalar);
